@@ -695,7 +695,8 @@ class MiniGridEnv(gym.Env):
         grid_size=16,
         max_steps=100,
         see_through_walls=False,
-        seed=1337
+        seed=1337,
+        obs_size=OBS_ARRAY_SIZE
     ):
         # Action enumeration for this environment
         self.actions = MiniGridEnv.Actions
@@ -708,7 +709,7 @@ class MiniGridEnv(gym.Env):
         self.observation_space = spaces.Box(
             low=0,
             high=255,
-            shape=OBS_ARRAY_SIZE,
+            shape=obs_size,
             dtype='uint8'
         )
         self.observation_space = spaces.Dict({

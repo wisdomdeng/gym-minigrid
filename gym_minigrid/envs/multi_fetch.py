@@ -1,7 +1,7 @@
 from gym_minigrid.minigrid import *
 from gym_minigrid.register import register
 
-class FetchEnv(MiniGridEnv):
+class MultiFetchEnv(MiniGridEnv):
     """
     Environment in which the agent has to fetch a random object
     named using English text strings
@@ -9,10 +9,28 @@ class FetchEnv(MiniGridEnv):
 
     def __init__(
         self,
-        size=8,
-        numObjs=3
+        size=16,
+        numObjs=5,
+        colors=['green', 'red'],
+        numTargets=2,
+        types=['balls']
     ):
+        assert (len(colors) == 0 or len(colors) == numObjs), "The length of" \ 
+        " color list must be the same as number of objects"
+
         self.numObjs = numObjs
+        if numTargets is None:
+            self.numTarget = numObjs
+        else:
+            self.numTargets = numTargets
+
+        if len(types) > 0:
+            self.types = types
+        else:
+            self.types = ['key', 'ball']
+        self.colors = colors
+        self.pickedUpTypes = []
+        self.pickedUpColors = []
 
         super().__init__(
             grid_size=size,
@@ -30,14 +48,19 @@ class FetchEnv(MiniGridEnv):
         self.grid.vert_wall(0, 0)
         self.grid.vert_wall(width-1, 0)
 
-        types = ['key', 'ball']
+
+        types = self.types
 
         objs = []
-
+        # TODO: Generating the walls in the room
         # For each object to be generated
+        count = 0
         while len(objs) < self.numObjs:
             objType = self._rand_elem(types)
             objColor = self._rand_elem(COLOR_NAMES)
+            if self.colors is not None and count < len(self.colors):
+                objColor = self.colors[count]
+                count += 1
 
             if objType == 'key':
                 obj = Key(objColor)
@@ -51,31 +74,45 @@ class FetchEnv(MiniGridEnv):
         self.place_agent()
 
         # Choose a random object to be picked up
-        target = objs[self._rand_int(0, len(objs))]
-        self.targetType = target.type
-        self.targetColor = target.color
+        self.targetColors = []
+        self.targetTypes = []
+        self.missions = []
 
-        descStr = '%s %s' % (self.targetColor, self.targetType)
+        for object in objs[:self.numTargets]:
+            targetType = object.type
+            targetColor = object.color
+            self.targetColors.append(targetColor)
+            self.targetTypes.append(targetType)
 
-        # Generate the mission string
-        idx = self._rand_int(0, 5)
-        if idx == 0:
-            self.mission = 'get a %s' % descStr
-        elif idx == 1:
-            self.mission = 'go get a %s' % descStr
-        elif idx == 2:
-            self.mission = 'fetch a %s' % descStr
-        elif idx == 3:
-            self.mission = 'go fetch a %s' % descStr
-        elif idx == 4:
-            self.mission = 'you must fetch a %s' % descStr
-        assert hasattr(self, 'mission')
+            descStr = "%s %s".format()
+
+            # Generate the mission string
+            idx = self._rand_int(0, 5)
+            mission = None
+            if idx == 0:
+                mission = 'get a %s' % descStr
+            elif idx == 1:
+                mission = 'go get a %s' % descStr
+            elif idx == 2:
+                mission = 'fetch a %s' % descStr
+            elif idx == 3:
+                mission = 'go fetch a %s' % descStr
+            elif idx == 4:
+                mission = 'you must fetch a %s' % descStr
+            assert hasattr(mission is not None)
+
+            self.missions.append(mission)
+
 
     def step(self, action):
         obs, reward, done, info = MiniGridEnv.step(self, action)
 
         if self.carrying:
+            carryingColor = self.carrying.color
+            carryingType = self.carrying.Type
 
+            self.pickedUpTypes = []
+            self.pickedUpColors = []
             if self.carrying.color == self.targetColor and \
                self.carrying.type == self.targetType:
                 reward = self._reward()
@@ -83,6 +120,7 @@ class FetchEnv(MiniGridEnv):
             else:
                 reward = 0
                 done = True
+            self.carrying = None
 
         return obs, reward, done, info
 

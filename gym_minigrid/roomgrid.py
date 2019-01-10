@@ -378,6 +378,7 @@ class RoomGrid(MiniGridEnv):
         # List of distractors added
         dists = []
 
+
         while len(dists) < num_distractors:
             color = self._rand_elem(COLOR_NAMES)
             type = self._rand_elem(['key', 'ball', 'box'])
